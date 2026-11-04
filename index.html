@@ -1,0 +1,117 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#000000">
+<meta name="robots" content="noindex, nofollow">
+<title>Mind</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+<link href="https://fonts.googleapis.com/css2?family=Instrument+Serif:ital@0;1&family=Inter+Tight:wght@400;500;600&family=JetBrains+Mono:wght@400;500&display=swap" rel="stylesheet">
+<link rel="stylesheet" href="css/style.css">
+<link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 32 32'%3E%3Crect width='32' height='32' rx='8' fill='%23000'/%3E%3Ccircle cx='16' cy='16' r='6' fill='none' stroke='%23fff' stroke-width='2'/%3E%3C/svg%3E">
+</head>
+<body>
+<canvas id="brain" aria-label="Interactive 3D brain. Each glowing point is an interest."></canvas>
+
+<div id="gate" hidden>
+  <form id="gateForm" autocomplete="off">
+    <p class="mono dim">PRIVATE</p>
+    <h1>Mind</h1>
+    <input id="gatePw" type="password" placeholder="Password" autocomplete="current-password" aria-label="Password" required>
+    <label class="keep mono"><input type="checkbox" id="gateKeep" checked> Keep me unlocked on this device</label>
+    <button class="btn">Unlock <span class="arrow">→</span></button>
+    <p id="gateErr" class="mono" role="alert"></p>
+  </form>
+</div>
+
+<div id="boot"><span class="mono">MAPPING MIND</span><i></i></div>
+
+<div id="hud">
+  <i class="tick tl"></i><i class="tick tr"></i><i class="tick bl"></i><i class="tick br"></i>
+
+  <header class="top">
+    <a class="brand" href="#" id="brand"><svg viewBox="0 0 32 32" width="22" height="22" aria-hidden="true"><rect x="6" y="6" width="20" height="20" rx="7" fill="none" stroke="currentColor" stroke-width="2.4"/></svg><span>Mind</span></a>
+    <nav class="meta mono">
+      <span id="clock"></span>
+      <button class="link" id="btnTodayTop">Today</button>
+      <button class="link" id="btnConn">Connections</button>
+      <button class="link" id="btnSearch" title="Search (Cmd/Ctrl K)">Search <kbd>⌘K</kbd></button>
+      <button class="link" id="btnInbox" title="Download unsynced entries for your vault">Inbox <b id="inboxN">0</b> ↓</button>
+    </nav>
+  </header>
+
+  <section class="hero" id="hero">
+    <p class="eyebrow mono"><span class="dot"></span><span id="heroStat">7 regions warm</span></p>
+    <h1>Nothing here<br>goes <em>cold.</em></h1>
+    <p class="lede">Every interest, kept warm. Come back to any of them in one click, and pick up exactly where you left off.</p>
+    <div class="cta">
+      <button class="btn" id="btnToday">Today's learnings <kbd>T</kbd><span class="arrow">→</span></button>
+      <button class="btn ghost" id="btnPick">Pick it back up <span class="arrow">↗</span></button>
+      <button class="btn ghost" id="btnLog">Log a thought <kbd>N</kbd><span class="arrow">+</span></button>
+    </div>
+  </section>
+
+  <aside class="pull glass" id="pull" hidden></aside>
+
+  <aside class="warmth" id="warmth" aria-label="Warmth of each interest">
+    <div class="wh mono"><span>WARMTH INDEX</span><span>LAST TOUCHED</span></div>
+    <ol id="warmList"></ol>
+  </aside>
+
+  <footer class="dock">
+    <div class="toggles mono">
+      <button data-t="rotate" class="on">Orbit</button>
+      <button data-t="fibres" class="on">Fibres</button>
+      <button data-t="glyph">Glyphs</button>
+      <button data-t="scan">Scan</button>
+    </div>
+    <p class="hint mono">drag to rotate · scroll to zoom · click a region · 1-9 jump · N log</p>
+  </footer>
+
+  <div id="labels"></div>
+  <div id="tip" class="mono"></div>
+</div>
+
+<aside id="panel" class="glass" aria-hidden="true" tabindex="-1"></aside>
+
+<div class="modal" id="capture" role="dialog" aria-modal="true" aria-label="Log a thought" hidden>
+  <div class="sheet glass">
+    <div class="sh mono"><span>NEW NEURON</span><button class="x" data-close aria-label="Close">esc</button></div>
+    <div class="seg" id="capType" role="radiogroup" aria-label="Type">
+      <button type="button" data-v="learning" class="on" role="radio" aria-checked="true">Learned</button>
+      <button type="button" data-v="observation" role="radio" aria-checked="false">Noticed</button>
+      <button type="button" data-v="question" role="radio" aria-checked="false">Wonder</button>
+    </div>
+    <label class="f"><span class="mono">REGION</span><select id="capInterest"></select></label>
+    <label class="f"><span class="mono">HEADLINE <i>(optional)</i></span><input id="capTitle" type="text" maxlength="90" placeholder="The one-line version" autocomplete="off"></label>
+    <label class="f"><span class="mono">THE THOUGHT</span><textarea id="capBody" rows="5" placeholder="What did you learn, notice, or want to know?"></textarea></label>
+    <div class="row"><span class="mono dim" id="capHint">⌘↵ to log</span><button class="btn" id="capSubmit">Fire it into the brain <span class="arrow">↗</span></button></div>
+  </div>
+</div>
+
+<div class="modal" id="palette" role="dialog" aria-modal="true" aria-label="Search" hidden>
+  <div class="sheet glass pal">
+    <input id="palInput" type="text" placeholder="Jump to a region, or search everything you have logged" autocomplete="off" aria-label="Search">
+    <ul id="palList" role="listbox"></ul>
+  </div>
+</div>
+
+<div class="modal today" id="today" role="dialog" aria-modal="true" aria-label="Today in your brain" hidden>
+  <div class="tsheet glass">
+    <div class="th">
+      <div><p class="mono dim" id="todayDate"></p><h2>Today in your brain</h2></div>
+      <div class="tabs mono" id="todayTabs" role="tablist"><button data-tab="learnings" role="tab">Learnings</button><button data-tab="review" role="tab">Review</button><button data-tab="connections" role="tab">Connections</button><button data-tab="methods" role="tab">How to learn</button></div>
+      <button class="x" data-close aria-label="Close">esc</button>
+    </div>
+    <div class="tbody" id="todayBody"></div>
+  </div>
+</div>
+
+<div id="toast" class="mono" role="status" aria-live="polite"></div>
+
+<noscript><p style="position:fixed;inset:0;display:grid;place-items:center;color:#aaa;font:15px system-ui">This site needs JavaScript.</p></noscript>
+<script type="module" src="js/app.js"></script>
+</body>
+</html>
