@@ -551,13 +551,23 @@ window.addEventListener('keydown', (e) => {
 /* ---------- markdown-lite for digests ---------- */
 function mdLite(text) {
   const inline = (s) => esc(s).replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, (m, t, u) => `<a href="${u}" target="_blank" rel="noopener noreferrer">${t}</a>`);
-  let html = '', open = false;
+  let html = '', open = false, gal = [];
+  const flushGal = () => {
+    if (!gal.length) return;
+    html += `<div class="gallery g${Math.min(gal.length, 4)}">${gal.map((g) => `<figure><img src="${g.u}" alt="${g.a}" loading="lazy" decoding="async" referrerpolicy="no-referrer">${g.a ? `<figcaption class="mono">${g.a}</figcaption>` : ''}</figure>`).join('')}</div>`;
+    gal = [];
+  };
   String(text).split('\n').forEach((ln) => {
+    const im = /^!\[([^\]]*)\]\((https:\/\/[^)\s]+)\)\s*$/.exec(ln);
+    if (im) { if (open) { html += '</ul>'; open = false; } gal.push({ a: esc(im[1]), u: esc(im[2]) }); return; }
+    flushGal();
     if (/^- /.test(ln)) { if (!open) { html += '<ul>'; open = true; } html += `<li>${inline(ln.slice(2))}</li>`; }
     else if (ln.trim()) { if (open) { html += '</ul>'; open = false; } html += `<p>${inline(ln)}</p>`; }
   });
+  flushGal();
   return html + (open ? '</ul>' : '');
 }
+document.addEventListener('error', (e) => { const t = e.target; if (t && t.tagName === 'IMG' && t.closest('.gallery')) { const f = t.closest('figure'); if (f) f.remove(); } }, true);
 
 /* ---------- Today dashboard, Review, Connections, Methods ---------- */
 const todayEl = $('#today');
