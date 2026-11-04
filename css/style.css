@@ -339,6 +339,6 @@ h1 em { font-style: italic; background: linear-gradient(100deg, #f3e6d3, #d9707f
 @media (max-width: 640px) { .glance button { grid-template-columns: 10px 1fr auto; } .glance .gn { grid-column: 2 / 4; } .glance .gg { grid-column: 2 / 4; } .glance .gm { grid-column: 2; } }
 /* embedded puzzle */
 .md .embed { margin: 4px 0 14px; }
-.md .embed iframe { display: block; width: 100%; max-width: 440px; aspect-ratio: 400 / 444; border: 0; border-radius: 10px; background: #111; }
+.md .embed iframe { display: block; width: 100%; max-width: 440px; aspect-ratio: 400 / 470; border: 0; border-radius: 10px; background: #111; }
 .md .embed a { display: inline-block; margin-top: 6px; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--mute); }
 .ansblock { margin-top: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,.04); }
