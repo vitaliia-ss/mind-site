@@ -38,8 +38,9 @@ const saveLocal = () => { try { localStorage.setItem(LS_KEY, JSON.stringify(loca
 /* ---------- storage + spaced review state ---------- */
 const load = (k, d) => { try { const v = JSON.parse(localStorage.getItem(k) || 'null'); return v == null ? d : v; } catch (e) { return d; } };
 const save = (k, v) => { try { localStorage.setItem(k, JSON.stringify(v)); } catch (e) { /* private mode */ } };
-const SRS_KEY = 'mind.srs.v1', LEVEL_KEY = 'mind.levels.v1', KEPT_KEY = 'mind.kept.v1';
-let srs = load(SRS_KEY, {}), levels = load(LEVEL_KEY, {}), kept = load(KEPT_KEY, {});
+const SRS_KEY = 'mind.srs.v1', LEVEL_KEY = 'mind.levels.v1', KEPT_KEY = 'mind.kept.v1', HOLE_KEY = 'mind.hole.v1';
+let srs = load(SRS_KEY, {}), levels = load(LEVEL_KEY, {}), kept = load(KEPT_KEY, {}), holeSeen = load(HOLE_KEY, {});
+const holeOpen = {};
 const LADDER = [1, 3, 7, 14, 30, 60, 120];
 const addDays = (iso, n) => { const d = new Date(iso + 'T00:00:00'); d.setDate(d.getDate() + n); return isoOf(d); };
 const levelOf = (it) => levels[it.id] || it.level || 'intermediate';
@@ -312,6 +313,19 @@ function sparkSvg(arr, color) {
     }).join('') + '</svg>';
 }
 
+const KIND = { read: 'Read', watch: 'Watch', listen: 'Listen', paper: 'Paper', do: 'Do' };
+function holeHtml(it) {
+  const h = it.hole, seen = holeSeen[it.id] || {};
+  const done = h.resources.filter((r) => seen[r.url]).length;
+  const mins = h.resources.reduce((a, r) => a + r.min, 0);
+  return `<div class="hole">
+    ${h.context ? `<p class="hctx">${esc(h.context)}</p>` : ''}
+    <div class="k mono"><span>Start here, in this order</span><span>${done}/${h.resources.length} opened · ${mins} min</span></div>
+    <ol class="hres">${h.resources.map((r, i) => `<li class="${seen[r.url] ? 'seen' : ''}"><a href="${esc(r.url)}" target="_blank" rel="noopener noreferrer" data-res="${esc(r.url)}"><span class="hk mono">${KIND[r.kind] || esc(r.kind)} · ${r.min} min</span><b>${esc(r.title)}</b><span class="hw">${esc(r.why)}</span></a></li>`).join('')}</ol>
+    ${h.questions.length ? `<div class="k mono"><span>Close the tab, then answer from memory</span></div><ul class="hq">${h.questions.map((q) => `<li>${esc(q)}</li>`).join('')}</ul><button class="chip solid" data-act="holelog">Log what stuck</button>` : ''}
+  </div>`;
+}
+
 function renderPanel(flashId, pulse) {
   const it = interests[active];
   if (!it) return;
@@ -327,7 +341,8 @@ function renderPanel(flashId, pulse) {
     <div class="meter"><div class="row mono"><span>${warmWord(it.vigor)} · ${Math.round(it.vigor * 100)}%</span><span>${when}</span></div><div class="track"><i style="width:${Math.round(it.vigor * 100)}%"></i></div></div>
     <p class="p-sum">${esc(it.summary)}</p>
     <div class="rabbit ${pulse ? 'pulse' : ''}"><div class="k mono">Next rabbit hole</div><p>${esc(it.rabbit || 'Add a rabbit_hole line to this interest in your vault.')}</p>
-      <div class="acts"><button class="chip solid" data-act="log">Log what I find</button><button class="chip" data-act="prompt">Copy a prompt for the professor</button></div></div>
+      <div class="acts">${it.hole ? `<button class="chip solid" data-act="hole">${holeOpen[it.id] ? 'Close the rabbit hole' : 'Go down the rabbit hole ↓'}</button>` : ''}<button class="chip ${it.hole ? '' : 'solid'}" data-act="log">Log what I find</button><button class="chip" data-act="prompt">Copy a prompt for the professor</button></div>
+      ${it.hole && holeOpen[it.id] ? holeHtml(it) : ''}</div>
     <div class="how"><div class="k mono"><span>How to learn this</span><select data-level aria-label="Your level in this area">${['novice', 'intermediate', 'expert'].map((l) => `<option value="${l}" ${l === levelOf(it) ? 'selected' : ''}>${l}</option>`).join('')}</select></div><p>${esc(it.method || 'Set a method line in this interest note.')}</p><button class="linkbtn" data-act="methods">Why this works</button></div>
     <div class="sec mono"><span>Last 30 days</span><span>${it.counts.learning} learned · ${it.counts.question} wonder · ${it.counts.observation} noticed</span></div>
     ${sparkSvg(it.act, it.color)}
@@ -343,10 +358,14 @@ function renderPanel(flashId, pulse) {
 }
 
 panel.addEventListener('click', (ev) => {
+  const a = ev.target.closest('[data-res]');
+  if (a && active >= 0) { const id = interests[active].id; (holeSeen[id] = holeSeen[id] || {})[a.dataset.res] = Date.now(); save(HOLE_KEY, holeSeen); a.closest('li').classList.add('seen'); return; }
   const t = ev.target.closest('[data-act],[data-go],[data-f]');
   if (!t) return;
   if (t.dataset.act === 'close') return deselect();
   if (t.dataset.act === 'log') return openCapture({ interest: interests[active].id, type: 'learning' });
+  if (t.dataset.act === 'hole') { const id = interests[active].id; holeOpen[id] = !holeOpen[id]; return renderPanel(); }
+  if (t.dataset.act === 'holelog') { const it = interests[active]; return openCapture({ interest: it.id, type: 'learning', title: '', body: '' }); }
   if (t.dataset.act === 'prompt') return copyPrompt(interests[active]);
   if (t.dataset.act === 'methods') return openToday('methods');
   if (t.dataset.go != null) return select(+t.dataset.go);
