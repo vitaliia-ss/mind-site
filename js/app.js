@@ -350,7 +350,7 @@ function renderPanel(flashId, pulse) {
     <div class="sec mono"><span>Neurons</span><div class="tabs">${tab('all', 'All')}${tab('learning', 'Learned')}${tab('question', 'Wonder')}${tab('observation', 'Noticed')}</div></div>
     <ul class="feed">${list.length ? list.map((e) => `
       <li class="entry" data-id="${esc(e.id)}"><div class="m mono"><span class="tag ${e.type}">${TYPE_LABEL[e.type] || e.type}</span><span>${niceDate(e.date)}</span>${e.local && !e.exported ? '<span class="loc">unsynced</span>' : ''}</div>
-      ${e.title ? `<h4>${esc(e.title)}</h4>` : ''}${e.body ? (e.type === 'digest' ? `<div class="md">${mdLite(e.body)}</div>` : `<p>${esc(e.body)}</p>`) : ''}</li>`).join('') : '<li class="empty">Nothing here yet. Log the first one.</li>'}</ul>`;
+      ${e.title ? `<h4>${esc(e.title)}</h4>` : ''}${e.body ? (e.type === 'digest' ? `<div class="md">${mdLite(splitDigest(e.body).md)}</div>` : `<p>${esc(e.body)}</p>`) : ''}</li>`).join('') : '<li class="empty">Nothing here yet. Log the first one.</li>'}</ul>`;
   if (flashId) {
     const el = $(`.entry[data-id="${CSS.escape(flashId)}"]`, panel);
     if (el) { el.classList.add('flash'); setTimeout(() => el.scrollIntoView({ block: 'center', behavior: 'smooth' }), 350); }
@@ -539,7 +539,7 @@ window.addEventListener('keydown', (e) => {
   if (anyModal()) return;
   const k = e.key.toLowerCase();
   if (k === 'n' || k === '/') { e.preventDefault(); openCapture(); }
-  else if (k === 't') openToday('learnings');
+  else if (k === 't') openToday('glance');
   else if (k === 'c') openToday('connections');
   else if (/^[1-9]$/.test(k)) select(+k - 1);
   else if (k === 'g') toggle('glyph');
@@ -549,7 +549,7 @@ window.addEventListener('keydown', (e) => {
 });
 
 /* ---------- markdown-lite for digests ---------- */
-function mdLite(text) {
+function mdLite(text, opts = {}) {
   const inline = (s) => esc(s).replace(/\[([^\]]+)\]\((https?:\/\/[^)\s]+)\)/g, (m, t, u) => `<a href="${u}" target="_blank" rel="noopener noreferrer">${t}</a>`);
   let html = '', open = false, gal = [];
   const flushGal = () => {
@@ -558,6 +558,11 @@ function mdLite(text) {
     gal = [];
   };
   String(text).split('\n').forEach((ln) => {
+    if (ln.trim() === '[[lichess-daily]]') {
+      flushGal(); if (open) { html += '</ul>'; open = false; }
+      html += opts.embed ? '<div class="embed"><iframe src="https://lichess.org/training/frame?theme=brown&bg=dark" title="Lichess puzzle of the day" loading="lazy" allowtransparency="true"></iframe><a class="mono" href="https://lichess.org/training/daily" target="_blank" rel="noopener noreferrer">open on Lichess</a></div>' : '<p><a href="https://lichess.org/training/daily" target="_blank" rel="noopener noreferrer">Daily puzzle on Lichess</a></p>';
+      return;
+    }
     const im = /^!\[([^\]]*)\]\((https:\/\/[^)\s]+)\)\s*$/.exec(ln);
     if (im) { if (open) { html += '</ul>'; open = false; } gal.push({ a: esc(im[1]), u: esc(im[2]) }); return; }
     flushGal();
@@ -571,15 +576,24 @@ document.addEventListener('error', (e) => { const t = e.target; if (t && t.tagNa
 
 /* ---------- Today dashboard, Review, Connections, Methods ---------- */
 const todayEl = $('#today');
-let todayTab = 'learnings';
+let todayTab = 'glance';
 const recall = {};
 let rv = { queue: [], i: 0, shown: false, typed: '', done: 0 };
 
 function splitDigest(body) {
-  let q = '';
-  const rest = String(body).split('\n').filter((l) => { const m = /^Question:\s*(.+)$/.exec(l); if (m) { q = m[1]; return false; } return true; });
-  return { md: rest.join('\n'), question: q };
+  let q = '', ans = [], inAns = false;
+  const rest = [];
+  String(body).split('\n').forEach((l) => {
+    let m;
+    if ((m = /^Question:\s*(.+)$/.exec(l))) { q = m[1]; inAns = false; return; }
+    if ((m = /^Answer:\s*(.*)$/.exec(l))) { ans.push(m[1]); inAns = true; return; }
+    if (inAns && !/^Sources:/.test(l)) { ans.push(l); return; }
+    inAns = false; rest.push(l);
+  });
+  return { md: rest.join('\n'), question: q, answer: ans.join('\n').trim() };
 }
+const readMin = (d) => { const t = splitDigest(d.body); return Math.max(1, Math.round(((t.md + ' ' + t.answer).replace(/!\[[^\]]*\]\([^)]*\)|\[\[[^\]]*\]\]|https?:\/\/\S+/g, ' ').split(/\s+/).filter(Boolean).length) / 200)); };
+const gistOf = (d) => d.gist || (splitDigest(d.body).md.replace(/!\[[^\]]*\]\([^)]*\)|\[\[[^\]]*\]\]/g, ' ').replace(/\s+/g, ' ').trim().replace(/^- /, '').split(/(?<=[.!?])\s/)[0] || d.title).slice(0, 140);
 
 function allCards() {
   const out = [];
@@ -672,6 +686,8 @@ function methodsHtml() {
 function cardHtml(it, iso) {
   const d = it.digest, r = recall[it.idx];
   const stale = d && d.date !== iso ? `<span class="pill">from ${niceDate(d.date)}</span>` : '';
+  const emb = !!(d && d.date === iso);
+  const mins = d ? `<span class="pill">${readMin(d)} min</span>` : '';
   let inner;
   if (!d) inner = '<p class="empty">No digest yet.</p>';
   else {
@@ -681,14 +697,14 @@ function cardHtml(it, iso) {
         <textarea data-rtext="${it.idx}" rows="4" placeholder="Answer from memory first, then reveal">${esc(r.text || '')}</textarea>
         <div class="acts"><button class="chip solid" data-reveal="${it.idx}">Reveal</button><button class="chip" data-rcancel="${it.idx}">Cancel</button></div>`;
     } else if (r && r.stage === 'shown') {
-      inner = `<h3>${esc(d.title)}</h3><div class="md">${mdLite(sp.md)}</div>${r.text ? `<p class="mono dim">YOUR ANSWER</p><p class="yours">${esc(r.text)}</p>` : ''}
+      inner = `<h3>${esc(d.title)}</h3><div class="md">${mdLite(sp.md, { embed: emb })}</div>${sp.answer ? `<div class="ansblock"><p class="mono dim">ANSWER</p><div class="md">${mdLite(sp.answer)}</div></div>` : ''}${r.text ? `<p class="mono dim">YOUR ANSWER</p><p class="yours">${esc(r.text)}</p>` : ''}
         <div class="acts">${r.text ? `<button class="chip solid" data-saveans="${it.idx}">Save my answer as a learning</button>` : ''}<button class="chip" data-keep="${it.idx}" ${kept[d.id] ? 'disabled' : ''}>${kept[d.id] ? 'Kept for review' : 'Keep for review'}</button><button class="chip" data-rcancel="${it.idx}">Close</button></div>`;
     } else {
-      inner = `<h3>${esc(d.title)}</h3><div class="md">${mdLite(sp.md)}</div>
+      inner = `<h3>${esc(d.title)}</h3><div class="md">${mdLite(sp.md, { embed: emb })}</div>
         <div class="acts"><button class="chip solid" data-recall="${it.idx}">Test me</button><button class="chip" data-go="${it.idx}">Open region</button><button class="chip" data-log="${it.idx}">Log a learning</button></div>`;
     }
   }
-  return `<article class="tcard" style="${cVars(it.color)}"><div class="m mono"><span class="dot"></span><span>${pad(it.idx + 1)} ${esc(it.name)}</span>${stale}</div>${inner}</article>`;
+  return `<article class="tcard" id="card-${it.idx}" style="${cVars(it.color)}"><div class="m mono"><span class="dot"></span><span>${pad(it.idx + 1)} ${esc(it.name)}</span>${stale}${mins}</div>${inner}</article>`;
 }
 
 function renderToday() {
@@ -708,6 +724,14 @@ function renderToday() {
         <h3>${esc(c.title)}</h3><div class="ab mono"><span>${esc(c.a)}</span><i>×</i><span>${esc(c.b)}</span></div>
         <p>${esc(c.hypothesis)}</p></article>`).join('')}</div>` : '<p class="empty">No Connections editions found yet.</p>');
     body.scrollTop = keep; return;
+  }
+  if (todayTab === 'glance') {
+    const rows = interests.filter((i) => i.digest);
+    const total = rows.reduce((a, i) => a + readMin(i.digest), 0);
+    body.innerHTML = `<p class="t-intro">Your whole day in about two minutes. Tap any line to read the full piece. Reading everything would take about <b>${total} min</b>, so pick the one or two that pull you.</p>
+      <ol class="glance">${rows.map((i) => `<li><button data-jump="${i.idx}" style="${cVars(i.color)}"><span class="gd"></span><span class="gn mono">${esc(i.name)}</span><span class="gg">${esc(gistOf(i.digest))}</span><span class="gm mono">${readMin(i.digest)} min</span></button></li>`).join('')}</ol>
+      <div class="tstats mono"><span><b>${dueN}</b> reviews due</span><span><button class="linkbtn" data-tab="review">Do your review</button></span></div>`;
+    body.scrollTop = 0; return;
   }
   const fresh = interests.filter((i) => i.digest && i.digest.date === iso).length;
   const mine = entries.filter((e) => e.date === iso && e.type !== 'digest');
@@ -729,7 +753,8 @@ function renderReview(body, total) {
     return;
   }
   const c = rv.queue[rv.i], it = interests[c.region];
-  const answer = c.e.type === 'digest' ? mdLite(splitDigest(c.e.body).md) : `<p>${esc(c.e.body || '')}</p>`;
+  const sd = c.e.type === 'digest' ? splitDigest(c.e.body) : null;
+  const answer = sd ? mdLite(sd.md) + (sd.answer ? `<p class="mono dim">ANSWER</p>${mdLite(sd.answer)}` : '') : `<p>${esc(c.e.body || '')}</p>`;
   body.innerHTML = `<div class="rv" style="${cVars(it.color)}"><div class="m mono"><span class="dot"></span><span>${pad(it.idx + 1)} ${esc(it.name)}</span><span class="pill">${rv.i + 1} of ${rv.queue.length}${total > rv.queue.length ? ` · ${total - rv.queue.length} more due` : ''}</span></div>
     <h3>${esc(c.e.title || 'Recall this')}</h3>
     ${rv.shown
@@ -746,6 +771,7 @@ todayEl.addEventListener('click', (e) => {
   if (e.target === todayEl || e.target.closest('[data-close]')) return closeModals();
   const g = (sel) => e.target.closest(sel);
   let x;
+  if ((x = g('[data-jump]'))) { todayTab = 'learnings'; renderToday(); const c = document.getElementById('card-' + x.dataset.jump); if (c) c.scrollIntoView({ block: 'start' }); return; }
   if ((x = g('[data-tab]'))) { todayTab = x.dataset.tab; if (todayTab === 'review') startReview(); return renderToday(); }
   if ((x = g('[data-go]'))) { closeModals(); return select(+x.dataset.go); }
   if ((x = g('[data-log]'))) { closeModals(); return openCapture({ interest: interests[+x.dataset.log].id, type: 'learning' }); }
@@ -766,8 +792,8 @@ todayEl.addEventListener('click', (e) => {
   if (g('[data-rvskip]')) { rv.i++; rv.shown = false; rv.typed = ''; return renderToday(); }
   if ((x = g('[data-rate]'))) rate(+x.dataset.rate);
 });
-$('#btnToday').addEventListener('click', () => openToday('learnings'));
-$('#btnTodayTop').addEventListener('click', () => openToday('learnings'));
+$('#btnToday').addEventListener('click', () => openToday('glance'));
+$('#btnTodayTop').addEventListener('click', () => openToday('glance'));
 $('#btnConn').addEventListener('click', () => openToday('connections'));
 
 boot();
