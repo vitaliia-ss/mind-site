@@ -127,6 +127,8 @@ const vec3 NAVY = vec3(0.22, 0.30, 0.80);
 const vec3 PLUM = vec3(0.68, 0.26, 0.68);
 const vec3 BURG = vec3(0.80, 0.15, 0.32);
 const vec3 BEIGE = vec3(0.95, 0.87, 0.74);
+const vec3 TERRA = vec3(0.82, 0.40, 0.24);
+const vec3 BLUE = vec3(0.26, 0.52, 0.88);
 `;
 
 const POINT_VERT = COMMON_UNIFORMS + PALETTE + DISPLACE + `
@@ -145,7 +147,8 @@ void main(){
   float hov = (uHover > -0.5 && abs(aReg - uHover) < 0.5) ? 1.0 : 0.0;
   float m1 = 0.5 + 0.5 * sin(p0.y * 2.4 + p0.x * 1.3 + p0.z * 0.8 + uTime * 0.05);
   float m2 = 0.5 + 0.5 * sin(p0.z * 1.7 - p0.x * 1.1 + 1.0);
-  vec3 irid = mix(mix(NAVY, PLUM, m1), mix(BURG, BEIGE, m1), m2);
+  vec3 irid = mix(mix(NAVY, BLUE, m1), mix(TERRA, mix(BURG, BEIGE, m1), m1), m2);
+  irid = mix(irid, PLUM, 0.12 * m1);
   vec3 base = mix(BEIGE * 0.9, irid, 0.6);
   vCol = mix(base, rc, 0.5 + 0.25 * hot);
   float f = (uMouseR > 0.0) ? smoothstep(uMouseR, 0.0, distance(p0, uMouse)) : 0.0;
@@ -188,7 +191,7 @@ void main(){
   gl_Position = projectionMatrix * modelViewMatrix * vec4(p, 1.0);
   int ra = int(aReg.x + 0.5), rb = int(aReg.y + 0.5);
   vec3 rc = mix(uCol[ra], uCol[rb], aT);
-  vec3 dcol = mix(mix(NAVY, PLUM, aDir.y), mix(BURG, BEIGE, aDir.x * 0.7), aDir.z);
+  vec3 dcol = mix(mix(NAVY, BLUE, aDir.y), mix(TERRA, mix(BURG, BEIGE, aDir.x * 0.7), aDir.y), aDir.z);
   vCol = mix(dcol * 1.2, rc, 0.36);
   float vig = 0.5 * (uVigor[ra] + uVigor[rb]);
   float prog = fract(uTime * (0.05 + 0.09 * aSeed) + aSeed * 13.0);

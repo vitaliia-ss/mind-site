@@ -55,7 +55,7 @@ kbd { font-family: var(--mono); font-size: 10px; color: var(--mute); border: 1px
 .eyebrow .dot { width: 6px; height: 6px; border-radius: 50%; background: #fff; box-shadow: 0 0 12px #fff; animation: breathe 2.8s ease-in-out infinite; }
 @keyframes breathe { 50% { opacity: 0.35; } }
 h1 { font-family: var(--serif); font-weight: 400; font-size: clamp(46px, 6.4vw, 96px); line-height: 0.94; letter-spacing: -0.025em; margin: 0 0 22px; }
-h1 em { font-style: italic; background: linear-gradient(100deg, #f3e6d3, #d9707f 45%, #a35bbf 85%); -webkit-background-clip: text; background-clip: text; color: transparent; padding-right: 0.08em; }
+h1 em { font-style: italic; background: linear-gradient(100deg, #f3e6d3, #d98a5f 40%, #6f9be0 85%); -webkit-background-clip: text; background-clip: text; color: transparent; padding-right: 0.08em; }
 .lede { color: var(--mute); max-width: 36ch; margin: 0 0 28px; font-size: 16px; }
 .cta { display: flex; flex-wrap: wrap; gap: 10px; }
 .btn { display: inline-flex; align-items: center; gap: 10px; padding: 11px 14px 11px 18px; border-radius: 999px; background: #f4f2ec; color: #0a0a0a; font-weight: 500; transition: transform 0.2s, background 0.2s, box-shadow 0.2s; }
@@ -342,3 +342,39 @@ h1 em { font-style: italic; background: linear-gradient(100deg, #f3e6d3, #d9707f
 .md .embed iframe { display: block; width: 100%; max-width: 440px; aspect-ratio: 400 / 470; border: 0; border-radius: 10px; background: #111; }
 .md .embed a { display: inline-block; margin-top: 6px; font-size: 10px; letter-spacing: .08em; text-transform: uppercase; color: var(--mute); }
 .ansblock { margin-top: 12px; padding: 12px 14px; border: 1px solid var(--line); border-radius: 12px; background: rgba(255,255,255,.04); }
+
+/* Light reading mode: only the text boxes (Today, region panel, dialogs) switch; the brain stays dark */
+html[data-read="light"] .tsheet, html[data-read="light"] #panel, html[data-read="light"] .sheet {
+  --ink: #1d1a22; --mute: #55525c; --dim: #6d6975; --line: rgba(29, 26, 34, 0.16);
+  --glass: #f5f1e9; background: #f5f1e9; color: #1d1a22; border-color: rgba(29, 26, 34, 0.14);
+  --cl: color-mix(in srgb, var(--c, #6a4f8a) 62%, #000);
+}
+html[data-read="light"] .tsheet *, html[data-read="light"] #panel *, html[data-read="light"] .sheet * { scrollbar-color: rgba(29,26,34,.3) transparent; }
+html[data-read="light"] .th .tabs { background: rgba(29, 26, 34, 0.07); }
+html[data-read="light"] .th .tabs button.on, html[data-read="light"] .seg button.on, html[data-read="light"] .chip.solid { background: #1d1a22; color: #f5f1e9; }
+html[data-read="light"] .tcard, html[data-read="light"] .rv { background: #fffdf8; border-color: rgba(29, 26, 34, 0.16); }
+html[data-read="light"] .rabbit { background: #fffdf8; }
+html[data-read="light"] .tcard .md ul, html[data-read="light"] .tcard .md p, html[data-read="light"] .tcard .yours, html[data-read="light"] .tcard .q,
+html[data-read="light"] .entry p, html[data-read="light"] .entry .md ul, html[data-read="light"] .entry .md p, html[data-read="light"] .p-sum,
+html[data-read="light"] .how p, html[data-read="light"] .hole .hctx, html[data-read="light"] .tcard.conn p { color: #26222c; opacity: 1; }
+html[data-read="light"] .tcard .md a, html[data-read="light"] .entry .md a { color: var(--cl); text-decoration-color: color-mix(in srgb, var(--cl) 45%, transparent); }
+html[data-read="light"] .tcard.conn, html[data-read="light"] .tcard.meth { --c: #7a3f93; --cl: #5b2d73; }
+html[data-read="light"] .tag.question, html[data-read="light"] .entry .loc { color: #7a5a1f; }
+html[data-read="light"] .tag.observation { color: #3b4aa3; }
+html[data-read="light"] .tcard .pill.strong { color: #5b2d73; border-color: #7a3f93; }
+html[data-read="light"] .tcard .pill.mixed { color: #7a5a1f; border-color: #a88344; }
+html[data-read="light"] .tcard .pill.cond { color: #3b4aa3; border-color: #5f70c7; }
+html[data-read="light"] .chip, html[data-read="light"] .hres a, html[data-read="light"] .btn.ghost { background: rgba(29, 26, 34, 0.04); color: #1d1a22; }
+html[data-read="light"] .chip:hover, html[data-read="light"] .hres a:hover, html[data-read="light"] .glance button:hover { background: rgba(29, 26, 34, 0.09); }
+html[data-read="light"] .btn:not(.ghost) { background: #1d1a22; color: #f5f1e9; }
+html[data-read="light"] .glance button { color: #1d1a22; }
+html[data-read="light"] .linkbtn { border-bottom-color: rgba(29,26,34,.35); }
+html[data-read="light"] .linkbtn:hover, html[data-read="light"] #panel .x:hover, html[data-read="light"] .link:hover { color: var(--cl, #000); }
+html[data-read="light"] #panel h2 { color: #1d1a22; }
+html[data-read="light"] .th .x { color: #55525c; }
+html[data-read="light"] .ansblock { background: rgba(29, 26, 34, 0.05); }
+.rdtoggle b { font-weight: 500; }
+html[data-read="light"] .tcard, html[data-read="light"] .rv, html[data-read="light"] .glance button, html[data-read="light"] #panel, html[data-read="light"] .chip { --cl: color-mix(in srgb, var(--c, #6a4f8a) 58%, #000) !important; }
+html[data-read="light"] .tsheet b, html[data-read="light"] .tsheet strong, html[data-read="light"] #panel b, html[data-read="light"] .sheet b { color: #1d1a22; }
+html[data-read="light"] .tsheet .dim, html[data-read="light"] .tsheet .mono { color: var(--mute); }
+html[data-read="light"] .tcard .m, html[data-read="light"] .tcard .ab { color: var(--cl); }

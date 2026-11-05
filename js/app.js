@@ -794,6 +794,15 @@ todayEl.addEventListener('click', (e) => {
 });
 $('#btnToday').addEventListener('click', () => openToday('glance'));
 $('#btnTodayTop').addEventListener('click', () => openToday('glance'));
+(function readMode() {
+  const apply = (m) => { document.documentElement.setAttribute('data-read', m); const b = $('#btnRead b'); if (b) b.textContent = m; };
+  let m = 'dark'; try { m = localStorage.getItem('mind.read.v1') || 'dark'; } catch (e) { /* ignore */ }
+  apply(m === 'light' ? 'light' : 'dark');
+  $('#btnRead').addEventListener('click', () => {
+    const n = document.documentElement.getAttribute('data-read') === 'light' ? 'dark' : 'light';
+    apply(n); try { localStorage.setItem('mind.read.v1', n); } catch (e) { /* ignore */ }
+  });
+})();
 $('#btnConn').addEventListener('click', () => openToday('connections'));
 
 boot();
